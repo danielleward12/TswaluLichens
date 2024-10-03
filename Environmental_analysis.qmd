@@ -64,7 +64,7 @@ summary(model5)
 drop1(model5, test = "Chisq")
 ```
 
-The code below plots the linear models for all the variables. This is to visually show relationships between environmental variables and lichen diversity. The p values were generated from the generalized linear mixed effect models that include site as a fixed effect.
+The code below plots the linear models for all the variables. This is to visually show relationships between environmental variables and lichen diversity. The p values were generated from the above generalized linear mixed effect models that include site as a fixed effect.
 
 ```{r}
 #plotting lms for all variables
@@ -90,30 +90,6 @@ envt <- data |>
 
 ggsave("envt.png", plot = envt, width = 9, height = 9, dpi = 500)
 ```
-
-envt <- data |>
-  mutate(id = row_number()) |>
-  gather(variable, value, -id, -Richness, -Latitude, -Longitude, -Locality, -Site, -Quadrat, -Habitat, -Substrate, -Aspect, -Coverage) |>
-  ggplot(aes(value, Richness)) +
-  geom_point() +
-  facet_wrap(~variable, scales = "free_x", ncol = 2, labeller = as_labeller(c(Northness = "Northness", Elevation = "Elevation (m)", Slope = "Slope (\u00B0)", Substrate_texture = "Substrate texture", Exposure = "Insolation")),
-             strip.position = "bottom") +
-  theme_classic() +
-  theme(strip.text = element_text(size = 14),
-        strip.placement = "outside",  
-        strip.background = element_blank(),  
-        axis.title.x = element_blank(),
-        axis.title.y = element_text(size = 14),
-        axis.text.x = element_text(size = 14),
-        axis.text.y = element_text(size = 14),
-        panel.spacing = unit(4, "lines"),
-        plot.margin = margin(1, 1, 1, 1, "cm"))
-      
-
-
-
-
-This code chunk has each site and its diversity plotted. This doesn't add new information because this was already recorded as gamma diversity in Table 1.
 
 ```{r}
 #plotting site and substrate 
