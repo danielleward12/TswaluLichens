@@ -1,0 +1,127 @@
+---
+title: "NMDS for Lichen morphospecies diversity and community composition across the Tswalu Kalahari Reserve, South Africa manuscript"
+format: html
+editor: visual
+---
+
+Code adapted from https://jkzorz.github.io/2019/06/06/NMDS.html for the base NMDS and environmental vectors were added using https://jkzorz.github.io/2020/04/04/NMDS-extras.html as a template
+
+```{r}
+#Load necessary libraries
+library(readr)
+library(here)
+library(vegan)
+library(tidyverse)
+library(dplyr)
+library(stringr)
+library(ggplot2)
+```
+
+```{r}
+#Read data
+raw <- read_csv("MS_matrix_sax.csv")
+View(raw)
+
+pc <- raw |>
+  dplyr::rename(info = `...1`) |>
+  dplyr::mutate(
+    site = str_split(info, "Q", simplify = TRUE)[,1],
+    quadrat = str_split(info, "Q", simplify = TRUE)[,2]
+  ) |>
+  relocate(site, .after = info) |>
+  relocate(quadrat, .after = site) |> 
+  mutate_if(is.character, as.factor)
+```
+
+```{r}
+#Extract columns with site information
+com = raw[, 2:ncol(raw)]
+View(com)
+
+#make nmds
+set.seed(123)
+nmds = metaMDS(com, distance = "jaccard")
+nmds
+
+plot(nmds)
+```
+
+```{r}
+#extract NMDS scores (x and y coordinates) for sites from newer versions of vegan package
+data.scores = as.data.frame(scores(nmds)$sites)
+
+#add columns to data frame 
+data.scores$site = pc$site
+data.scores$quadrat = pc$quadrat
+
+head(data.scores)
+
+ggplot(data.scores, aes(x = NMDS1, y = NMDS2)) + 
+  geom_point(size = 2.5, aes(color = site))+ 
+  theme(axis.text.y = element_text(colour = "black", size = 11), 
+        axis.text.x = element_text(colour = "black",  size = 11), 
+        legend.text = element_text(size = 11, face ="bold", colour ="black"), 
+        legend.position = "right", axis.title.y = element_text(face = "bold", size = 14), 
+        axis.title.x = element_text(face = "bold", size = 14, colour = "black"), 
+        legend.title = element_text(size = 11, colour = "black", face = "bold"), 
+        panel.background = element_blank(), panel.border = element_rect(colour = "black", fill = NA, linewidth = 1.2),
+        legend.key=element_blank()) + 
+  labs(x = "NMDS1", color = "Sites", y = "NMDS2")
+
+
+
+species_df <- scores(nmds)$species |> data.frame()
+```
+
+```{r}
+#adding environmental vectors 
+#read data 
+df <- read_csv("Env_sax.csv")
+
+df$Site <- as.factor (df$Site)
+df$Quadrat <- as.factor (df$Quadrat)
+df$Substrate_type <- as.factor (df$Substrate_type)
+df <- df |> rename(`Substrate texture` = `Substrate _texture`)
+
+View(df)
+
+com1 = df[,12:60]
+env1 = df[,5:11]
+```
+
+```{r}
+#convert com to a matrix
+m_com1 = as.matrix(com1)
+
+#nmds code
+set.seed(123)
+nmds1 = metaMDS(m_com1, distance = "jaccard")
+nmds1
+
+en1 = envfit(nmds1, env1, permutations = 999, na.rm = TRUE)
+```
+
+#this needs to be done outside of the code chunk for some reason plot(nmds1) plot(en1)
+
+```{r}
+#extract NMDS scores (x and y coordinates) for sites from newer versions of vegan package
+data.scores1 = as.data.frame(scores(nmds1)$sites)
+
+#add columns as before
+data.scores1$Site = df$Site
+
+en_coord_cont1 = as.data.frame(scores(en1, "vectors")) * ordiArrowMul(en1)
+en_coord_cat1 = as.data.frame(scores(en1, "factors")) * ordiArrowMul(en1)
+
+```
+
+library(ggrepel)
+
+NMDS \<- ggplot(data = data.scores1, aes(x = NMDS1, y = NMDS2)) + geom_point(data = data.scores1, aes(colour = Site), size = 4, alpha = 0.5) + stat_ellipse(mapping = aes(color = Site), level = 0.90, linetype = 2, linewidth = 1) + scale_colour_viridis_d(option = "D") + geom_segment(aes(x = 0, y = 0, xend = NMDS1, yend = NMDS2), data = en_coord_cont1, linewidth = 1, alpha = 0.5, colour = "grey30") + geom_text_repel(data = en_coord_cont1, aes(x = NMDS1*1.3, y = NMDS2*1.3, label =\
+row.names(en_coord_cont1)), colour = "grey30", fontface = "bold", size = 5) +\
+theme(axis.title = element_text(size = 10, face = "bold", colour = "grey30"), panel.background = element_blank(), panel.border = element_rect(fill = NA, colour = "grey30"), axis.ticks = element_blank(), axis.text = element_blank(), legend.key = element_blank(), legend.title = element_text(size = 15, face = "bold", colour = "grey30"), legend.text = element_text(size = 9, colour = "grey30")) + labs(colour = "Site")
+
+```{r}
+#save plot
+ggsave("NMDS.tiff", plot = NMDS, width = 8, height = 6, dpi = 500)
+```

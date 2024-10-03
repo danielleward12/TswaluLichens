@@ -1,0 +1,123 @@
+---
+title: "Environmental analysis for Lichen morphospecies diversity and  across the Tswalu Kalahari Reserve, South Africa manuscript"
+format: html
+editor: visual
+---
+
+```{r}
+#load libraries and wrangle data
+library(readr); library(ggplot2); library(ggpubr); library(here); library(dplyr); library(tidyr); library(lme4); library(arm)
+data <- read_csv("data_sax.csv")
+View(data)
+
+data$Site <- factor(data$Site)
+data$Quadrat <- factor(data$Quadrat)
+data$Substrate <- factor(data$Substrate)
+data$Substrate_texture <- as.numeric(data$Substrate_texture)
+data$Slope <- as.numeric(data$Slope)
+aspect_angle_radians <- data$Aspect * (pi / 180)
+data$Northness <- cos(aspect_angle_radians)
+```
+
+```{r}
+#MODEL #1 Insolation and Northness
+model1 <- glm(Richness ~ Exposure + Northness + Site, data = data, family = poisson)
+
+summary(model1)
+
+drop1(model1, test = "Chisq")
+```
+
+```{r}
+#MODEL #2 Substrate texture 
+model2 <- glm(Richness ~ Substrate_texture + Site, data = data, family = poisson)
+
+summary(model2)
+
+drop1(model2, test = "Chisq")
+```
+
+```{r}
+#MODEL #3 Elevation
+model3 <- glm(Richness ~ Elevation + Site, data = data, family = poisson)
+
+summary(model3)
+
+drop1(model3, test = "Chisq")
+```
+
+```{r}
+#Model #4 Slope
+model4 <- glm(Richness ~ Slope + Site, data = data, family = poisson)
+
+summary(model4)
+
+drop1(model4, test = "Chisq")
+```
+
+```{r}
+#MODEL #5 Site
+model5 <- glm(Richness ~ Site, data = data, family = poisson) 
+
+summary(model5)
+
+drop1(model5, test = "Chisq")
+```
+
+The code below plots the linear models for all the variables. This is to visually show relationships between environmental variables and lichen diversity. The p values were generated from the generalized linear mixed effect models that include site as a fixed effect.
+
+```{r}
+#plotting lms for all variables
+envt <- data |>
+  mutate(id = row_number()) |>
+  gather(variable, value, -id, -Richness, -Latitude, -Longitude, -Locality, -Site, -Quadrat, -Habitat, -Substrate, -Aspect, -Coverage) |>
+  ggplot(aes(value, Richness)) +
+  geom_point() +
+  facet_wrap(~variable, scales = "free_x", ncol = 2, labeller = as_labeller(c(Northness = "Northness", Elevation = "Elevation (m)", Slope = "Slope (\u00B0)", Substrate_texture = "Substrate texture", Exposure = "Insolation")),
+             strip.position = "bottom") +
+  theme_classic() +
+  theme(strip.text = element_text(size = 14),
+        strip.placement = "outside",  
+        strip.background = element_blank(),  
+        axis.title.x = element_blank(),
+        axis.title.y = element_text(size = 14),
+        axis.text.x = element_text(size = 14),
+        axis.text.y = element_text(size = 14),
+        panel.spacing = unit(4, "lines"),
+        plot.margin = margin(1, 1, 1, 1, "cm"))
+      
+
+
+ggsave("envt.png", plot = envt, width = 9, height = 9, dpi = 500)
+```
+
+envt <- data |>
+  mutate(id = row_number()) |>
+  gather(variable, value, -id, -Richness, -Latitude, -Longitude, -Locality, -Site, -Quadrat, -Habitat, -Substrate, -Aspect, -Coverage) |>
+  ggplot(aes(value, Richness)) +
+  geom_point() +
+  facet_wrap(~variable, scales = "free_x", ncol = 2, labeller = as_labeller(c(Northness = "Northness", Elevation = "Elevation (m)", Slope = "Slope (\u00B0)", Substrate_texture = "Substrate texture", Exposure = "Insolation")),
+             strip.position = "bottom") +
+  theme_classic() +
+  theme(strip.text = element_text(size = 14),
+        strip.placement = "outside",  
+        strip.background = element_blank(),  
+        axis.title.x = element_blank(),
+        axis.title.y = element_text(size = 14),
+        axis.text.x = element_text(size = 14),
+        axis.text.y = element_text(size = 14),
+        panel.spacing = unit(4, "lines"),
+        plot.margin = margin(1, 1, 1, 1, "cm"))
+      
+
+
+
+
+This code chunk has each site and its diversity plotted. This doesn't add new information because this was already recorded as gamma diversity in Table 1.
+
+```{r}
+#plotting site and substrate 
+data1 <- data |>
+  mutate(id = row_number(),
+         Substrate = ifelse(Substrate == 1, "rock", "bark"))  # Rename substrate categories
+```
